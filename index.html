@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f7e7ef">
+<link rel="manifest" href="manifest.json">
+<link rel="stylesheet" href="style.css">
+<title>Meraki Attendance</title>
+</head>
+<body>
+<div id="app">
+<header>
+  <div>
+    <div class="eyebrow">MERAKI</div>
+    <h1>Attendance</h1>
+  </div>
+  <button class="icon-btn" id="backupBtn" title="Backup">↥</button>
+</header>
+
+<main>
+  <section id="home" class="screen active">
+    <div class="hero-card">
+      <div class="muted">Overall attendance</div>
+      <div class="big-number" id="overallPct">0%</div>
+      <div class="stats">
+        <div><b id="memberCount">0</b><span>Members</span></div>
+        <div><b id="meetingCount">0</b><span>Meetings</span></div>
+        <div><b id="presentTotal">0</b><span>Present marks</span></div>
+      </div>
+    </div>
+    <button class="primary big-btn" id="newMeetingBtn">＋ START NEW MEETING</button>
+    <div class="section-head"><h2>Recent meetings</h2><button class="text-btn" data-screen="meetings">View all</button></div>
+    <div id="recentMeetings" class="list"></div>
+  </section>
+
+  <section id="meetings" class="screen">
+    <div class="section-head"><h2>Meetings</h2><button class="primary small-btn" id="newMeetingBtn2">＋ New</button></div>
+    <div id="allMeetings" class="list"></div>
+  </section>
+
+  <section id="members" class="screen">
+    <div class="section-head"><h2>Members</h2><button class="primary small-btn" id="addMemberBtn">＋ Add</button></div>
+    <input class="search" id="memberSearch" placeholder="Search members…">
+    <div id="membersList" class="list"></div>
+  </section>
+
+  <section id="more" class="screen">
+    <h2>More</h2>
+    <div class="menu-card">
+      <button id="exportBtn">Export backup (.json) <span>›</span></button>
+      <button id="importBtn">Restore backup <span>›</span></button>
+      <button id="clearBtn" class="danger">Clear all data <span>›</span></button>
+    </div>
+    <input type="file" id="fileInput" accept=".json" hidden>
+    <p class="hint">Attendance is stored locally on this device. Export a backup regularly.</p>
+  </section>
+</main>
+
+<nav>
+  <button class="nav active" data-screen="home">⌂<span>Home</span></button>
+  <button class="nav" data-screen="meetings">▣<span>Meetings</span></button>
+  <button class="nav" data-screen="members">♙<span>Members</span></button>
+  <button class="nav" data-screen="more">☰<span>More</span></button>
+</nav>
+</div>
+
+<div class="modal" id="modal"></div>
+<script src="app.js"></script>
+</body>
+</html>
