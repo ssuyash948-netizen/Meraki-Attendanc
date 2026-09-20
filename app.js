@@ -42,8 +42,67 @@ window.createMeeting=()=>{const m={id:uid(),title:$("#meetingTitle").value.trim(
 window.openMeeting=id=>{const m=data.meetings.find(x=>x.id===id);if(!m)return;showScreen("meetings");openModal(`<h3>${esc(m.title)}</h3><div class="date-label">${dateStr(m.date)} · <span id="countNow">${m.present.length}</span>/${data.members.length} present</div><div id="attendanceRows">${data.members.map(mem=>{let p=m.present.includes(mem.id);return `<div class="att-row"><div><div class="name">${esc(mem.name)}</div><div class="sub">${esc(mem.id||"")}</div></div><button class="toggle ${p?"present":""}" onclick="toggleAttendance('${m.id}','${mem.id}')">${p?"PRESENT":"ABSENT"}</button></div>`}).join("")}</div><div class="actions"><button class="secondary" onclick="closeModal()">Close</button><button class="danger-btn" onclick="deleteMeeting('${m.id}')">Delete meeting</button></div>`)}
 window.toggleAttendance=(mid,memid)=>{let m=data.meetings.find(x=>x.id===mid);m.present=m.present.includes(memid)?m.present.filter(x=>x!==memid):[...m.present,memid];localStorage.setItem(KEY,JSON.stringify(data));openMeeting(mid);render()}
 window.deleteMeeting=id=>{if(confirm("Delete this meeting?")){data.meetings=data.meetings.filter(m=>m.id!==id);closeModal();save()}}
-function exportData(){const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`meraki-attendance-${new Date().toISOString().slice(0,10)}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
-$("#exportBtn").onclick=exportData;$("#backupBtn").onclick=exportData;
+function downloadBlob(content,name,type){
+  const blob=new Blob([content],{type}),a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);a.download=name;a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000)
+}
+function csvCell(v){return `"${String(v??"").replace(/"/g,'""')}"`}
+function meetingRows(m){
+  const rows=[["Member","Member ID","Status"]];
+  data.members.forEach(mem=>rows.push([mem.name,mem.id||"",m.present.includes(mem.id)?"Present":"Absent"]));
+  return rows;
+}
+function exportMeetingCSV(id){
+  const m=data.meetings.find(x=>x.id===id); if(!m)return;
+  const rows=[
+    ["MERAKI ATTENDANCE"],
+    ["Meeting",m.title],
+    ["Date",m.date],
+    ["Present",m.present.length],
+    ["Total Members",data.members.length],
+    [],
+    ...meetingRows(m)
+  ];
+  downloadBlob(rows.map(r=>r.map(csvCell).join(",")).join("\r\n"),
+    `meraki-${safeFile(m.title)}-${m.date}.csv`,"text/csv;charset=utf-8");
+}
+function exportAllCSV(){
+  if(!data.meetings.length){alert("No meetings to export.");return}
+  const rows=[];
+  data.meetings.slice().sort((a,b)=>a.date.localeCompare(b.date)).forEach((m,i)=>{
+    if(i) rows.push([],[]);
+    rows.push(["MERAKI ATTENDANCE"]);
+    rows.push(["Meeting",m.title]);
+    rows.push(["Date",m.date]);
+    rows.push(["Present",m.present.length]);
+    rows.push(["Total Members",data.members.length]);
+    rows.push([]);
+    rows.push(["Member","Member ID","Status"]);
+    rows.push(...data.members.map(mem=>[mem.name,mem.id||"",m.present.includes(mem.id)?"Present":"Absent"]));
+  });
+  downloadBlob(rows.map(r=>r.map(csvCell).join(",")).join("\r\n"),
+    `meraki-all-meetings-${new Date().toISOString().slice(0,10)}.csv`,"text/csv;charset=utf-8");
+}
+function safeFile(s){return String(s||"meeting").replace(/[\\/:*?"<>|]+/g,"-").replace(/\s+/g,"-").slice(0,60)}
+function exportBackup(){
+  downloadBlob(JSON.stringify(data,null,2),
+    `meraki-attendance-backup-${new Date().toISOString().slice(0,10)}.json`,"application/json");
+}
+$("#exportBtn").onclick=()=>showExportOptions();
+$("#backupBtn").onclick=exportBackup;
+function showExportOptions(){
+  const meetingButtons=data.meetings.slice().reverse().map(m=>
+    `<button onclick="exportMeetingCSV('${m.id}');closeModal()">${esc(m.title)} · ${dateStr(m.date)} <span>›</span></button>`
+  ).join("");
+  openModal(`<h3>Export attendance</h3>
+    <div class="menu-card" style="margin:0">
+      <button onclick="exportAllCSV();closeModal()"><b>Export all meetings</b><span>CSV ›</span></button>
+      <button onclick="exportBackup();closeModal()"><b>Export full backup</b><span>JSON ›</span></button>
+    </div>
+    <h3 style="margin-top:24px">Export one meeting</h3>
+    <div class="menu-card" style="margin:0">${meetingButtons||'<div class="empty">No meetings yet.</div>'}</div>`);
+}
 $("#importBtn").onclick=()=>$("#fileInput").click();
 $("#fileInput").onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const x=JSON.parse(await f.text());if(!x.members||!x.meetings)throw Error();data=x;save();alert("Backup restored.");}catch{alert("That file is not a valid Meraki Attendance backup.")}e.target.value=""}
 $("#clearBtn").onclick=()=>{if(confirm("Delete ALL members, meetings and attendance? This cannot be undone unless you have a backup.")){data={members:[],meetings:[]};save()}}
